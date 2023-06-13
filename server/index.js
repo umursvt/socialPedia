@@ -9,8 +9,14 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
-import { register } from '../server/controllers/auth.js';
+import userRoutes from './routes/users.js';
+import postRoutes from './routes/posts.js';
 import { verifyToken } from './middleware/auth.js';
+import { register } from './controllers/auth.js';
+import { createPost } from './controllers/posts.js';
+import User from '../server/models/user.js';
+import Post from './models/post.js';
+import { users, posts } from './data/index.js';
 
 // Configurations (when you use type:module in package.json file)
 const __filename = fileURLToPath(import.meta.url);
@@ -39,9 +45,11 @@ const upload = multer({ storage });
 
 //Routes with files
 app.post('/auth/register', upload.single('picture'), verifyToken, register); //'auth/register' is url, upload.single() is middleware and register is controller
-
+app.post('/posts', verifyToken, upload.single('picture'), createPost);
 // ROUTES
 app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/posts', postRoutes);
 
 // MONGOOSE SET UP
 const PORT = process.env.PORT || 6001;
@@ -50,7 +58,10 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     app.listen(PORT, () => console.log(`Server Port:${PORT}`));
+    // Add data
+    await User.insertMany(users);
+    await Post.insertMany(posts);
   })
   .catch((error) => console.log(`Connection failed: ${error} `));
